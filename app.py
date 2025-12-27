@@ -7,7 +7,7 @@ from collections import Counter
 import io
 import streamlit.components.v1 as components
 import requests  
-import gc                                         
+import gc                                           
 from scipy.signal import butter, lfilter
 
 # --- CONFIGURATION SÉCURISÉE & SECRETS ---
@@ -27,8 +27,16 @@ st.markdown("""
     .label-custom { color: #888; font-size: 0.9em; font-weight: bold; margin-bottom: 5px; }
     .value-custom { font-size: 1.6em; font-weight: 800; color: #FFFFFF; }
     .final-decision-box { 
-        padding: 45px; border-radius: 20px; text-align: center; margin: 20px 0; 
+        padding: 45px; border-radius: 20px; text-align: center; margin: 10px 0; 
         color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+    }
+    .solid-note-box {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px dashed #6366F1;
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -182,7 +190,7 @@ def get_full_analysis(file_bytes, file_name):
                 "Camelot": get_camelot_pro(key_seg),
                 "Confiance": round(float(score_seg) * 100, 1)
             })
-        progress_bar.progress(min(start_t / duration, 1.0))
+    progress_bar.progress(min(start_t / duration, 1.0))
     progress_bar.empty()
 
     if not votes: return None
@@ -304,11 +312,22 @@ with tabs[0]:
                     </div>
                 """, unsafe_allow_html=True)
 
+                # --- MISE EN AVANT DE LA NOTE SOLIDE ---
+                st.markdown(f"""
+                    <div class="solid-note-box">
+                        <div style="color: #888; font-size: 0.8em; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Analyse de Stabilité Temporelle</div>
+                        <div style="font-size: 2.2em; font-weight: 800; color: #6366F1; margin: 5px 0;">💎 NOTE SOLIDE : {res['note_solide']}</div>
+                        <div style="display: inline-block; background: #6366F1; color: white; padding: 2px 12px; border-radius: 20px; font-size: 0.9em; font-weight: bold;">
+                            Score de Stabilité : {res['solid_conf']}%
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+
                 c1, c2, c3, c4 = st.columns(4)
                 with c1:
                     st.markdown(f'<div class="metric-container"><div class="label-custom">BPM</div><div class="value-custom">{res["tempo"]}</div></div>', unsafe_allow_html=True)
                 with c2:
-                    st.markdown(f'<div class="metric-container"><div class="label-custom">NOTE SOLIDE</div><div class="value-custom">{res["note_solide"]}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="metric-container"><div class="label-custom">AUDITION</div><div class="value-custom">TEST</div></div>', unsafe_allow_html=True)
                     get_sine_witness(res["note_solide"], f"sol_{fid}")
                 with c3:
                     st.markdown(f'<div class="metric-container"><div class="label-custom">ÉNERGIE</div><div class="value-custom">{res["energy"]}/10</div></div>', unsafe_allow_html=True)
