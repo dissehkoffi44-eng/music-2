@@ -86,13 +86,20 @@ def detect_relative_key(n1, n2):
         return False, n1
     except: return False, n1
 
-def upload_to_telegram(file_buffer, filename, caption):
+def upload_to_telegram(file_buffer, filename, caption, plot_bytes=None):
     try:
         file_buffer.seek(0)
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendDocument"
+        url_doc = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendDocument"
         files = {'document': (filename, file_buffer.read())}
         data = {'chat_id': CHAT_ID, 'caption': caption, 'parse_mode': 'Markdown'}
-        response = requests.post(url, files=files, data=data, timeout=45).json()
+        response = requests.post(url_doc, files=files, data=data, timeout=45).json()
+        
+        # Envoi du graphique si présent
+        if plot_bytes and response.get("ok"):
+            url_photo = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
+            plot_files = {'photo': ('graph.png', plot_bytes)}
+            requests.post(url_photo, files=plot_files, data={'chat_id': CHAT_ID}, timeout=45)
+            
         return response.get("ok", False)
     except: return False
 
@@ -235,6 +242,14 @@ def get_full_analysis(file_bytes, file_name):
     else: bg = "linear-gradient(135deg, #FF512F 0%, #DD2476 100%)"; label = "ANALYSE COMPLEXE"
 
     tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+
+    # GÉNERATION DU GRAPHIQUE POUR TELEGRAM
+    fig_tg = px.line(df_tl, x="Temps", y="Note", markers=True, template="plotly_dark", title=f"Stabilité: {file_name}")
+    fig_tg.update_layout(yaxis={'categoryorder':'array', 'categoryarray':NOTES_ORDER}, paper_bgcolor='#0e1117', plot_bgcolor='#0e1117')
+    try:
+        plot_img_bytes = fig_tg.to_image(format="png", width=800, height=400)
+    except:
+        plot_img_bytes = None
     
     res = {
         "file_name": file_name,
@@ -244,7 +259,8 @@ def get_full_analysis(file_bytes, file_name):
         "note_solide": note_solide, "solid_conf": solid_conf,
         "n1": n1, "c1": int(purity), "n2": n2, "c2": int((counts[n2]/len(votes))*100),
         "is_cadence": is_cadence, "is_relative": is_relative,
-        "energy": int(np.clip(musical_score/10, 1, 10))
+        "energy": int(np.clip(musical_score/10, 1, 10)),
+        "plot_img": plot_img_bytes
     }
     
     del y, y_harm; gc.collect()
@@ -299,7 +315,7 @@ with tabs[0]:
                         f"━━━━━━━━━━━━━━━━━━━━\n"
                         f"📢 *Analyse par RCDJ228 AI*"
                     )
-                    upload_to_telegram(io.BytesIO(f_bytes), f.name, tg_cap)
+                    upload_to_telegram(io.BytesIO(f_bytes), f.name, tg_cap, res.get("plot_img"))
                     st.session_state.processed_files[fid] = res
                     st.session_state.order_list.insert(0, fid)
 
