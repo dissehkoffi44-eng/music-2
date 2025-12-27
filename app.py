@@ -7,11 +7,10 @@ from collections import Counter
 import io
 import streamlit.components.v1 as components
 import requests  
-import gc                                     
+import gc                                         
 from scipy.signal import butter, lfilter
 
 # --- CONFIGURATION SÉCURISÉE & SECRETS ---
-# Note : En production, utilisez st.secrets. Sur local, ces valeurs par défaut sont utilisées.
 TELEGRAM_TOKEN = st.secrets.get("TELEGRAM_TOKEN", "7751365982:AAFLbeRoPsDx5OyIOlsgHcGKpI12hopzCYo")
 CHAT_ID = st.secrets.get("CHAT_ID", "-1003602454394")
 
@@ -188,7 +187,7 @@ def get_full_analysis(file_bytes, file_name):
 
     if not votes: return None
 
-    # Calcul de la note solide (la plus stable temporellement)
+    # Calcul de la note solide
     df_tl = pd.DataFrame(timeline_data)
     df_tl['is_stable'] = df_tl['Note'] == df_tl['Note'].shift(1)
     stability_scores = {}
@@ -271,16 +270,24 @@ with tabs[0]:
                 f_bytes = f.read()
                 res = get_full_analysis(f_bytes, f.name)
                 if res:
-                    # --- REPORTING TELEGRAM ---
-                    status_emoji = "✅" if res['recommended']['conf'] > 75 else "⚠️"
+                    # --- REPORTING TELEGRAM DÉTAILLÉ ---
+                    status_icon = "🟢" if res['recommended']['conf'] > 80 else "🟡" if res['recommended']['conf'] > 60 else "🔴"
                     tg_cap = (
-                        f"🎵 *RAPPORT HARMONIQUE*\n"
+                        f"🎵 *RAPPORT HARMONIQUE PRO*\n"
                         f"━━━━━━━━━━━━━━━━━━━━\n"
                         f"📄 *FICHIER* : `{res['file_name']}`\n"
-                        f"🔥 *RÉSULTAT* : `{res['recommended']['note']}` ({get_camelot_pro(res['recommended']['note'])})\n"
-                        f"🎯 *FIABILITÉ* : {res['recommended']['conf']}%\n"
-                        f"🥁 *TEMPO* : {res['tempo']} BPM\n"
-                        f"━━━━━━━━━━━━━━━━━━━━"
+                        f"🎹 *CLÉ FINALE* : `{res['recommended']['note'].upper()}`\n"
+                        f"🎡 *CAMELOT* : `{get_camelot_pro(res['recommended']['note'])}`\n"
+                        f"🎯 *FIABILITÉ* : `{res['recommended']['conf']}%` {status_icon}\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"🎼 *DÉTAILS TECHNIQUES* :\n"
+                        f"• Note la plus stable : `{res['note_solide']}`\n"
+                        f"• Tempo détecté : `{res['tempo']} BPM`\n"
+                        f"• Énergie globale : `{res['energy']}/10`\n"
+                        f"• Cadence Parfaite : `{'✅ Oui' if res['is_cadence'] else '❌ Non'}`\n"
+                        f"• Tonalité Relative : `{'✅ Détectée' if res['is_relative'] else '❌ Non'}`\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"📢 *Analyse par RCDJ228 AI*"
                     )
                     upload_to_telegram(io.BytesIO(f_bytes), f.name, tg_cap)
                     st.session_state.processed_files[fid] = res
@@ -289,7 +296,6 @@ with tabs[0]:
         for fid in st.session_state.order_list:
             res = st.session_state.processed_files[fid]
             with st.expander(f"📊 {res['file_name']}", expanded=True):
-                # Bandeau principal
                 st.markdown(f"""
                     <div class="final-decision-box" style="background:{res['recommended']['bg']};">
                         <h2 style="margin:0; opacity:0.8; font-weight:300;">{res['recommended']['label']}</h2>
@@ -298,7 +304,6 @@ with tabs[0]:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Colonnes de Metrics
                 c1, c2, c3, c4 = st.columns(4)
                 with c1:
                     st.markdown(f'<div class="metric-container"><div class="label-custom">BPM</div><div class="value-custom">{res["tempo"]}</div></div>', unsafe_allow_html=True)
@@ -310,7 +315,6 @@ with tabs[0]:
                 with c4:
                     st.markdown(f'<div class="metric-container"><div class="label-custom">CADENCE</div><div class="value-custom">{"OUI" if res["is_cadence"] else "NON"}</div></div>', unsafe_allow_html=True)
 
-                # Graphique Temporel
                 df_tl = pd.DataFrame(res['timeline'])
                 fig = px.line(df_tl, x="Temps", y="Note", markers=True, template="plotly_dark", title="Stabilité Harmonique")
                 fig.update_layout(yaxis={'categoryorder':'array', 'categoryarray':NOTES_ORDER}, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
