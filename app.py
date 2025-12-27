@@ -7,7 +7,7 @@ from collections import Counter
 import io
 import streamlit.components.v1 as components
 import requests  
-import gc                                           
+import gc                                            
 from scipy.signal import butter, lfilter
 
 # --- CONFIGURATION SÉCURISÉE & SECRETS ---
@@ -278,18 +278,20 @@ with tabs[0]:
                 f_bytes = f.read()
                 res = get_full_analysis(f_bytes, f.name)
                 if res:
-                    # --- REPORTING TELEGRAM DÉTAILLÉ ---
+                    # --- REPORTING TELEGRAM DÉTAILLÉ AVEC MISE EN AVANT NOTE SOLIDE ---
                     status_icon = "🟢" if res['recommended']['conf'] > 80 else "🟡" if res['recommended']['conf'] > 60 else "🔴"
                     tg_cap = (
                         f"🎵 *RAPPORT HARMONIQUE PRO*\n"
                         f"━━━━━━━━━━━━━━━━━━━━\n"
                         f"📄 *FICHIER* : `{res['file_name']}`\n"
-                        f"🎹 *CLÉ FINALE* : `{res['recommended']['note'].upper()}`\n"
+                        f"🎹 *CLÉ RECOMMANDÉE* : `{res['recommended']['note'].upper()}`\n"
                         f"🎡 *CAMELOT* : `{get_camelot_pro(res['recommended']['note'])}`\n"
                         f"🎯 *FIABILITÉ* : `{res['recommended']['conf']}%` {status_icon}\n"
                         f"━━━━━━━━━━━━━━━━━━━━\n"
-                        f"🎼 *DÉTAILS TECHNIQUES* :\n"
-                        f"• Note la plus stable : `{res['note_solide']}`\n"
+                        f"💎 *NOTE LA PLUS SOLIDE* : `{res['note_solide'].upper()}`\n"
+                        f"📈 *STABILITÉ* : `{res['solid_conf']}%` 🔥\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"🎼 *AUTRES DÉTAILS* :\n"
                         f"• Tempo détecté : `{res['tempo']} BPM`\n"
                         f"• Énergie globale : `{res['energy']}/10`\n"
                         f"• Cadence Parfaite : `{'✅ Oui' if res['is_cadence'] else '❌ Non'}`\n"
